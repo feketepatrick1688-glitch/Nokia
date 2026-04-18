@@ -1,37 +1,49 @@
 from pathlib import Path
 
 def next_magic_num(n: int) -> int:
-    if n < 0:
-        return 0
-    s = str(n)
-    length = len(s)
-    
-    def generate_palindrome(left: str, even: bool) -> int:
-        pal = left
-        if not even:
-            pal += left[-1]
-        pal += left[:-1][::-1] if even else left[::-1]
-        return int(pal)
-    
-    half = (length + 1) // 2
-    left = s[:half]
-    pal = generate_palindrome(left, length % 2 == 0)
-    
-    if pal > n:
-        return pal
-    
-    left_num = int(left) + 1
-    left_str = str(left_num).zfill(half)
-    if len(left_str) > half:
-        return 10**length + 1
-    return generate_palindrome(left_str, length % 2 == 0)
+    s = list(str(n))
+    l = len(s)
+
+    p = s[:]
+    for i in range(l // 2):
+        p[-1 - i] = p[i]
+
+    palindrom = int("".join(p))
+    if palindrom > n:
+        return palindrom
+
+    i = (l - 1) // 2
+    while i >= 0 and p[i] == '9':
+        p[i] = '0'
+        p[-1 - i] = '0'
+        i -= 1
+
+    if i < 0:
+        return int("1" + ("0" * (l - 1)) + "1")
+
+    p[i] = str(int(p[i]) + 1)
+    p[-1 - i] = p[i]
+
+    return int("".join(p))
+
+
+def parse_line(line: str) -> int:
+    line = line.strip()
+    if "^" in line:
+        a, b = line.split("^")
+        return pow(int(a), int(b))
+    return int(line)
+
 
 def main():
-    data = Path("input.txt").read_text(encoding="utf-8").strip()
-    for line in data.splitlines():
-        if line.strip():
-            num = int(line.strip())
-            print(next_magic_num(num))
+    lines = Path("input.txt").read_text().splitlines()
+
+    for line in lines:
+        if not line.strip():
+            continue
+        n = parse_line(line)
+        print(next_magic_num(n))
+
 
 if __name__ == "__main__":
     main()
