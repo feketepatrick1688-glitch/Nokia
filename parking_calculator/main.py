@@ -1,59 +1,95 @@
-from pathlib import Path
 from datetime import datetime
 import math
 
+INPUT_FILE = "input.txt"
+OUTPUT_FILE = "output.txt"
 
-def calculate_fee(start, end):
+FREE_MINUTES = 30
+FIRST_PHASE_MINUTES = 3 * 60
+FIRST_PHASE_RATE = 300        
+SECOND_PHASE_RATE = 500       
+DAILY_CAP = 10000             
+
+
+def calculate_fee(start: datetime, end: datetime) -> int:
     if end < start:
-        return "ERROR"
+        return -1
 
-    total_minutes = int((end - start).total_seconds() // 60)
+    total_minutes = (end - start).total_seconds() / 60
 
-    days = total_minutes // (24 * 60)
-    remaining = total_minutes % (24 * 60)
+    full_days = int(total_minutes // (24 * 60))
+    remaining_minutes = total_minutes % (24 * 60)
 
-    fee = days * 10000
+    total_cost = full_days * DAILY_CAP
 
-    if remaining <= 30:
-        return fee
+    if remaining_minutes <= FREE_MINUTES:
+        return int(total_cost)
 
-    remaining -= 30
+    remaining_minutes -= FREE_MINUTES
 
-    first_block = min(remaining, 180)
-    fee += math.ceil(first_block / 60) * 300
+    first_phase = min(remaining_minutes, FIRST_PHASE_MINUTES)
+    cost_first = math.ceil(first_phase / 60) * FIRST_PHASE_RATE
 
-    remaining -= first_block
-    if remaining > 0:
-        fee += math.ceil(remaining / 60) * 500
+    second_phase = max(0, remaining_minutes - FIRST_PHASE_MINUTES)
+    cost_second = math.ceil(second_phase / 60) * SECOND_PHASE_RATE
 
-    return fee
+    total_cost += cost_first + cost_second
+
+    if total_cost > (full_days + 1) * DAILY_CAP:
+        total_cost = (full_days + 1) * DAILY_CAP
+
+    return int(total_cost)
+
+
+def parse_line(line: str):
+    parts = line.split()
+    if len(parts) < 5:
+        return None
+
+    plate = parts[0]
+    start_str = parts[1] + " " + parts[2]
+    end_str = parts[3] + " " + parts[4]
+
+    try:
+        start = datetime.strptime(start_str, "%Y-%m-%d %H:%M:%S")
+        end = datetime.strptime(end_str, "%Y-%m-%d %H:%M:%S")
+    except:
+        return None
+
+    return plate, start, end
 
 
 def main():
-    lines = Path("input.txt").read_text(encoding="utf-8").splitlines()
-    output_lines = []
+    results = []
+
+    with open(INPUT_FILE, "r", encoding="utf-8") as f:
+        lines = f.readlines()
 
     for line in lines:
-        if not line.strip() or "-" not in line or ":" not in line:
+        line = line.strip()
+
+        if not line or line.startswith("RENDSZAM") or line.startswith("="):
             continue
 
-        try:
-            parts = line.split()
-            plate = parts[0]
+        parsed = parse_line(line)
+        if not parsed:
+            results.append(f"HIBAS_BEMENET")
+            continue
 
-            start = datetime.strptime(parts[1] + " " + parts[2], "%Y-%m-%d %H:%M:%S")
-            end = datetime.strptime(parts[3] + " " + parts[4], "%Y-%m-%d %H:%M:%S")
+        plate, start, end = parsed
+        fee = calculate_fee(start, end)
 
-            fee = calculate_fee(start, end)
+        if fee == -1:
+            results.append(f"{plate}: HIBAS_IDO")
+        else:
+            results.append(f"{plate}: {fee} Ft")
 
-        except Exception:
-            fee = "ERROR"
+    for r in results:
+        print(r)
 
-        output_lines.append(f"{plate}: {fee}")
-
-    Path("output.txt").write_text("\n".join(output_lines), encoding="utf-8")
-
-    print("\n".join(output_lines))
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        for r in results:
+            f.write(r + "\n")
 
 
 if __name__ == "__main__":
