@@ -49,7 +49,7 @@ def main():
         except Exception:
             fee = "ERROR"
 
-        output_lines.append(f"{plate}: {fee}")
+        output_lines.append(f"{plate} {fee}")
 
     Path("output.txt").write_text("\n".join(output_lines), encoding="utf-8")
 
