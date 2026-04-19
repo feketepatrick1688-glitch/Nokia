@@ -32,8 +32,6 @@ def calculate_fee(start, end):
 def main():
     lines = Path("input.txt").read_text(encoding="utf-8").splitlines()
     output_lines = []
-    output_lines.append(lines[0])
-    output_lines.append(lines[1])
     for line in lines:
         if not line.strip() or "-" not in line or ":" not in line:
             continue
