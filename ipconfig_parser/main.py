@@ -16,14 +16,19 @@ def parse_ipconfig(filename, text):
             
         adapter = {
             "adapter_name": lines[0].strip(": "),
-            "description": "", "physical_address": "", "dhcp_enabled": "",
-            "ipv4_address": "", "subnet_mask": "", "default_gateway": "",
+            "description": "",
+            "physical_address": "",
+            "dhcp_enabled": "",
+            "ipv4_address": "",
+            "subnet_mask": "",
+            "default_gateway": "",
             "dns_servers": []
         }
         
         current_key = None
+
         for line in lines[1:]:
-            if " . . . . . . . . . . . :" in line:
+            if re.match(r'^\s*[^:]+:\s*.*$', line):
                 key_part, val_part = line.split(":", 1)
                 key = key_part.replace(".", "").strip().lower()
                 val = re.sub(r'\(.*?\)', '', val_part).strip()
@@ -39,7 +44,7 @@ def parse_ipconfig(filename, text):
                 elif "dhcp enabled" in key:
                     adapter["dhcp_enabled"] = val
 
-                elif "ipv4 address" in key or "autoconfiguration ipv4" in key: 
+                elif "ipv4 address" in key or "autoconfiguration ipv4" in key:
                     adapter["ipv4_address"] = val
 
                 elif "subnet mask" in key:
@@ -72,7 +77,9 @@ def parse_ipconfig(filename, text):
                         adapter["default_gateway"] = val
 
         adapters.append(adapter)
+
     return {"file_name": filename, "adapters": adapters}
+
 
 def main():
     results = []
@@ -87,6 +94,7 @@ def main():
     output_json = json.dumps(results, indent=2, ensure_ascii=False)
     print(output_json)
     Path("output.json").write_text(output_json, encoding="utf-8")
+
 
 if __name__ == "__main__":
     main()
