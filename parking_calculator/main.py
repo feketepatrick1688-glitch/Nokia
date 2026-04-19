@@ -9,24 +9,24 @@ def calculate_fee(start, end):
 
     total_minutes = int((end - start).total_seconds() // 60)
 
-    if total_minutes >= 24 * 60:
-        return 10000
+    days = total_minutes // (24 * 60)
+    remaining = total_minutes % (24 * 60)
 
-    if total_minutes <= 30:
-        return 0
+    fee = days * 10000
 
-    remaining = total_minutes - 30
-    fee = 0
+    if remaining <= 30:
+        return fee
+
+    remaining -= 30
 
     first_block = min(remaining, 180)
-    fee += (first_block / 60) * 300
+    fee += math.ceil(first_block / 60) * 300
 
     remaining -= first_block
-
     if remaining > 0:
-        fee += (remaining / 60) * 500
+        fee += math.ceil(remaining / 60) * 500
 
-    return math.ceil(fee)
+    return fee
 
 
 def main():
