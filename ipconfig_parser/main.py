@@ -2,6 +2,9 @@ import json
 import re
 from pathlib import Path
 
+def is_ipv4(val):
+    return re.match(r'^\d+\.\d+\.\d+\.\d+$', val) is not None
+
 def parse_ipconfig(filename, text):
     adapters = []
     sections = re.split(r'\n(?=[a-zA-Z].*adapter.*:)', text)
@@ -25,23 +28,48 @@ def parse_ipconfig(filename, text):
                 key = key_part.replace(".", "").strip().lower()
                 val = re.sub(r'\(.*?\)', '', val_part).strip()
                 
-                if "description" in key: adapter["description"] = val
-                elif "physical address" in key: adapter["physical_address"] = val
-                elif "dhcp enabled" in key: adapter["dhcp_enabled"] = val
+                current_key = None
+
+                if "description" in key:
+                    adapter["description"] = val
+
+                elif "physical address" in key:
+                    adapter["physical_address"] = val
+
+                elif "dhcp enabled" in key:
+                    adapter["dhcp_enabled"] = val
+
                 elif "ipv4 address" in key or "autoconfiguration ipv4" in key: 
                     adapter["ipv4_address"] = val
-                elif "subnet mask" in key: adapter["subnet_mask"] = val
+
+                elif "subnet mask" in key:
+                    adapter["subnet_mask"] = val
+
                 elif "default gateway" in key:
-                    if val: adapter["default_gateway"] = val
                     current_key = "gateway"
+                    
+                    if val:
+                        if is_ipv4(val):
+                            adapter["default_gateway"] = val
+                        elif not adapter["default_gateway"]:
+                            adapter["default_gateway"] = val
+
                 elif "dns servers" in key:
-                    if val: adapter["dns_servers"].append(val)
                     current_key = "dns"
+                    if val:
+                        adapter["dns_servers"].append(val)
+
             elif line.strip() and current_key:
                 val = re.sub(r'\(.*?\)', '', line).strip()
-                if current_key == "dns": adapter["dns_servers"].append(val)
-                elif current_key == "gateway" and not adapter["default_gateway"]:
-                    adapter["default_gateway"] = val
+
+                if current_key == "dns":
+                    adapter["dns_servers"].append(val)
+
+                elif current_key == "gateway":
+                    if is_ipv4(val):
+                        adapter["default_gateway"] = val
+                    elif not adapter["default_gateway"]:
+                        adapter["default_gateway"] = val
 
         adapters.append(adapter)
     return {"file_name": filename, "adapters": adapters}
